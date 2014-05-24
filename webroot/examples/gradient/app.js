@@ -68,13 +68,13 @@
 	gradient.append("svg:stop")
 		.attr("class", "stop2")
 		.attr("offset", "50%")
-		.attr("stop-color", "#333")
+		.attr("stop-color", "#999")
 		.attr("stop-opacity", 1);
 
 	gradient.append("svg:stop")
 		.attr("class", "stop3")
 		.attr("offset", "100%")
-		.attr("stop-color", "#999")
+		.attr("stop-color", "#333")
 		.attr("stop-opacity", 1);
 
 	svg.append("svg:rect")
