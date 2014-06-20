@@ -1,0 +1,48 @@
+<!docytype>
+<!--[if lt IE 7]>      <html class="no-js lt-ie9 lt-ie8 lt-ie7"> <![endif]-->
+<!--[if IE 7]>         <html class="no-js lt-ie9 lt-ie8"> <![endif]-->
+<!--[if IE 8]>         <html class="no-js lt-ie9"> <![endif]-->
+<!--[if gt IE 8]><!--> <html class="no-js"> <!--<![endif]-->
+<html>
+<head>
+	<meta charset="utf-8">
+	<meta http-equiv="X-UA-Compatible" content="IE=edge">
+	<title>Example</title>	
+	<meta name="description" content="">
+	<meta name="viewport" content="width=device-width, initial-scale=1">
+	<script src="../../common/js/lib/modernizr.custom.js?v=0.1"></script>
+	<link rel="stylesheet" type="text/css" href="css/style.css">
+</head>
+<body>
+	<h1>Random movement</h1>
+	<p>
+		No D3
+	</p>
+	<div id="bounds">
+		<div class="rule_h"></div>
+		<div class="rule_v"></div>
+		<button class="constrained">constrained</button>
+		<button class="unconstrained">unconstrained</button>
+	</div>
+	<script type="text/javascript" src="../../common/js/lib/jquery-1.11.0.min.js"></script>
+	<script type="text/javascript" src="../../common/js/d3/d3.min.js"></script>
+	<script type="text/javascript" src="app.js"></script>
+	<script>
+
+	$( 'button.unconstrained' )
+		.on( 'click', function() {
+			app.init({
+				'constrain_to_bounds': false
+			});
+		} );
+
+	$( 'button.constrained' )
+		.on( 'click', function() {
+			app.init({
+				'constrain_to_bounds': true
+			});
+		} );
+
+	</script>
+</body>
+</html>
