@@ -2,7 +2,17 @@ var app = (function( $ ) {
 
 	"use strict";
 
-	var _collection = [];
+	var _collection = [],
+		_ready = false,
+		_load_int,
+		_constrain_to_bounds = false,
+
+		_loop_duration = 5,
+		_max_travel = 3000,
+		_direction_range = 100,
+		_min_direction_change = 5,
+		_redirect_distance = 10
+	;
 
 	/* * * * * * * * * * * * * * * * * * * * */
 
@@ -14,7 +24,37 @@ var app = (function( $ ) {
 
 	/* * * * * * * * * * * * * * * * * * * * */
 
+	function _setup() {
+
+		_load_int = setInterval( function() {
+
+			if ( $( '#load-indicator' ).css( 'display' ) === 'block' ) {
+
+				clearInterval( _load_int );
+
+				_ready = true;
+
+			}
+
+		}, 20 );
+
+	}
+
+	/* * * * * * * * * * * * * * * * * * * * */
+
 	function _init( options ) {
+
+		if ( options && ( typeof options.constrain_to_bounds !== 'undefined' ) ) {
+
+			_constrain_to_bounds = options.constrain_to_bounds;
+
+		}
+
+		if ( _ready === false ) {
+
+			return;
+
+		}
 
 		var i;
 
@@ -29,11 +69,12 @@ var app = (function( $ ) {
 		}
 
 		var new_obj = new Wanderer({
-			'$context': $( '#bounds' ),
-			'options': options
+			'$context': $( '#bounds' )
 		});
 
 		_collection.push( new_obj );
+
+		debug( 'Initialized.' );
 
 	}
 
@@ -43,15 +84,13 @@ var app = (function( $ ) {
 
 		this.$context = arguments[ 0 ].$context;
 
-		this.$wrap = $( '<div class="node"></div>' );
+		this.$node = $( '<div class="node"></div>' );
 
-		this.$context.append( this.$wrap );
-
-		this.options = arguments[ 0 ].options || null;
+		this.$context.append( this.$node );
 
 		/* * * * * * * * * * * * * * * * * * * * */
 
-		this.loop_duration = 10000;
+		this.loop_duration = _loop_duration;
 
 		this.animation_int = null;
 
@@ -61,15 +100,9 @@ var app = (function( $ ) {
 
 		this.start_time = 0;
 
-		this.max_time = 1000000;
+		this.max_time = _max_travel;
 
-		this.constrain_to_bounds = false;
-
-		if ( this.options !== null && ( typeof this.options.constrain_to_bounds !== 'undefined' ) ) {
-
-			this.constrain_to_bounds = this.options.constrain_to_bounds;
-
-		}
+		this.constrain_to_bounds = _constrain_to_bounds;
 
 		this.move_increment = 2;
 
@@ -91,7 +124,7 @@ var app = (function( $ ) {
 
 		this.start_time = time_now;
 
-		this.$wrap
+		this.$node
 			.css({
 				'top': this.$context.height() / 2,
 				'left': this.$context.width() / 2
@@ -111,10 +144,10 @@ var app = (function( $ ) {
 
 		var i,
 			j,
-			range = 180,
+			range = _direction_range,
 			offset,
 			trajectory,
-			min_change = 5,
+			min_change = _min_direction_change,
 			change = min_change;
 
 		change += Math.round( Math.random() * 50 );
@@ -169,8 +202,8 @@ var app = (function( $ ) {
 		}
 
 		var pos = {
-				'x': this.$wrap.position().left,
-				'y': this.$wrap.position().top
+				'x': this.$node.position().left,
+				'y': this.$node.position().top
 			},
 			deg = this.trajectory_array[ this.current_step ],
 			rad;
@@ -187,20 +220,22 @@ var app = (function( $ ) {
 
 		}
 
-		this.$wrap
+		this.$node
 			.css({
 				'top': pos.y,
 				'left': pos.x
 			});
 
-		this.current_step = ( this.current_step < ( this.loop_duration - 1 ) ) ? ( this.current_step + 1 ) : 0;
+		this.current_step = ( this.current_step < ( this.trajectory_array.length - 1 ) ) ? ( this.current_step + 1 ) : 0;
 
 	};
 
 	/* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
 
 	/* 
-	 * 9-zone grid test
+	 * 9-zone grid test 
+	 *
+	 * Redirect to a particular direction based on the trajectory
 	 *
 	 */
 
@@ -208,65 +243,65 @@ var app = (function( $ ) {
 
 		var new_pos;
 
-		if ( ( pos.x < 0 ) &&
-			( pos.y < 0 ) ) {
+		if ( ( pos.x <= 0 ) &&
+			( pos.y <= 0 ) ) {
 
 			// 1
 			new_pos = this.redirect( '4' );
 
 		} else if ( ( pos.x > 0 ) &&
-					( pos.x < this.$wrap.width() ) &&
-					( pos.y < 0 ) ) {
+					( pos.x < this.$context.width() ) &&
+					( pos.y <= 0 ) ) {
 
 			// 2
-			new_pos = this.redirect( 'quadrant-bottom' );
+			new_pos = this.redirect( 'bottom' );
 
-		} else if ( ( pos.x > 0 ) &&
-					( pos.y < 0 ) ) {
+		} else if ( ( pos.x >= this.$context.width() ) &&
+					( pos.y <= 0 ) ) {
 
 			// 3
-			new_pos = this.redirect( '4' );
+			new_pos = this.redirect( '3' );
 
-		} else if ( ( pos.x < 0 ) &&
-					( pos.y >= 0 ) &&
-					( pos.y <= this.$wrap.height() ) ) {
+		} else if ( ( pos.x <= 0 ) &&
+					( pos.y > 0 ) &&
+					( pos.y < this.$context.height() ) ) {
 
 			// 4
-			new_pos = pos; // pass through
+			new_pos = this.redirect( 'right' );
 
-		} else if ( ( pos.x >= 0 ) &&
-					( pos.x <= this.$wrap.width() ) &&
-					( pos.y >= 0 ) &&
-					( pos.y <= this.$wrap.height() ) ) {
+		} else if ( ( pos.x > 0 ) &&
+					( pos.x < this.$context.width() ) &&
+					( pos.y > 0 ) &&
+					( pos.y < this.$context.height() ) ) {
 
 			// 5
 			new_pos = pos;
 
-		} else if ( ( pos.x > this.$wrap.width() ) &&
-					( pos.y >= 0 ) &&
-					( pos.y <= this.$wrap.height() ) ) {
+		} else if ( ( pos.x >= this.$context.width() ) &&
+					( pos.y > 0 ) &&
+					( pos.y < this.$context.height() ) ) {
 
 			// 6
-			new_pos = this.redirect( '4' );
+			new_pos = this.redirect( 'left' );
 
 		} else if ( ( pos.x < 0 ) &&
-					( pos.y > this.$wrap.height() ) ) {
+					( pos.y >= this.$context.height() ) ) {
 
 			// 7
 			new_pos = this.redirect( '1' );
 
-		} else if ( ( pos.x >= 0 ) &&
-					( pos.x <= this.$wrap.width()) &&
-					( pos.y > this.$wrap.height() ) ) {
+		} else if ( ( pos.x > 0 ) &&
+					( pos.x < this.$context.width()) &&
+					( pos.y >= this.$context.height() ) ) {
 
 			// 8
-			new_pos = this.redirect( 'quadrant-top' );
+			new_pos = this.redirect( 'top' );
 
-		} else if ( ( pos.x > this.$wrap.width() ) &&
-					( pos.y > this.$wrap.height() ) ) {
+		} else if ( ( pos.x >= this.$context.width() ) &&
+					( pos.y >= this.$context.height() ) ) {
 
 			// 9
-			new_pos = this.redirect( 'quadrant-top' );
+			new_pos = this.redirect( '2' );
 
 		}
 
@@ -276,50 +311,74 @@ var app = (function( $ ) {
 
 	/* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
 
-	Wanderer.prototype.redirect = function( quadrant ) {
+	Wanderer.prototype.redirect = function( direction ) {
+
+		debug( direction );
 
 		var deg,
 			rad,
 			pos = {
-				'x': this.$wrap.position().left,
-				'y': this.$wrap.position().top
+				'x': this.$node.position().left,
+				'y': this.$node.position().top
 			};
 
-		if ( quadrant === 'quadrant-right' ) {
+		switch ( direction ) {
 
-			deg = ( Math.random() * 180 );
+			case 'right':
 
-			deg = ( deg > 90 ) ? ( 360 - ( deg - 90 ) ) : deg;
+				deg = ( Math.random() * 180 );
 
-		} else if ( quadrant === 'quadrant-left' ) {
+				deg -= 90;
 
-			deg = ( Math.random() * 180 ) + 90;
+				deg = ( deg < 0 ) ? ( 360 + deg ) : deg;
 
-		} else if ( quadrant === 'quadrant-top' ) {
+				break;
 
-			deg = ( Math.random() * 180 );
+			case 'left':
 
-		} else if ( quadrant === 'quadrant-bottom' ) {
+				deg = ( Math.random() * 180 ) + 90;
 
-			deg = ( Math.random() * 180 );
+				break;
 
-		} else if ( quadrant === '1' ) {
+			case 'top':
 
-			deg = ( Math.random() * 90 );
+				deg = ( Math.random() * 180 );
 
-		} else if ( quadrant === '2' ) {
+				break;
 
-			deg = ( Math.random() * 90 ) + 90;
+			case 'bottom':
 
-		} else if ( quadrant === '3' ) {
+				deg = ( Math.random() * 180 );
 
-			deg = ( Math.random() * 90 ) + 180;
+				break;
 
-		} else if ( quadrant === '4' ) {
+			case '1':
 
-			deg = ( Math.random() * 90 ) + 270;
+				deg = ( Math.random() * 90 );
+
+				break;
+
+			case '2':
+			
+				deg = ( Math.random() * 90 ) + 90;
+
+				break;
+
+			case '3':
+
+				deg = ( Math.random() * 90 ) + 180;
+
+				break;
+
+			case '4':
+			
+				deg = ( Math.random() * 90 ) + 270;
+
+				break;
 
 		}
+
+		this.push_new_trajectory( deg );
 
 		rad = _deg_to_rad( deg );
 
@@ -328,6 +387,36 @@ var app = (function( $ ) {
 		pos.y += Math.sin( rad ) * this.move_increment;
 
 		return pos;
+
+	};
+
+	/* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
+
+	Wanderer.prototype.push_new_trajectory = function( deg ) {
+
+		var i,
+			new_direction = [],
+			count = _redirect_distance;
+
+		while ( i < count ) {
+
+			new_direction.push( deg );
+
+		}
+
+		debug( this.trajectory_array );
+
+		debug( 'deg: ' + deg );
+
+		debug( 'starting: ' + this.current_step );
+
+		for ( i = 0; i < count; i++ ) {
+
+			this.trajectory_array.splice( this.current_step, 0, deg );
+
+		}
+
+		debug( this.trajectory_array );
 
 	};
 
@@ -343,7 +432,7 @@ var app = (function( $ ) {
 
 	Wanderer.prototype.destroy = function() {
 
-		this.$wrap.empty();
+		this.$node.empty();
 
 		this.stop_animation();
 
@@ -359,16 +448,10 @@ var app = (function( $ ) {
 
 	}
 
-	function _test() {
-
-		debug( 'Test' );
-
-	}
-
 	return {
 
-		init : _init,
-		test : _test
+		init  : _init,
+		setup : _setup
 
 	};
 
@@ -376,4 +459,4 @@ var app = (function( $ ) {
 
 })( jQuery );
 
-app.test();
+app.setup();
