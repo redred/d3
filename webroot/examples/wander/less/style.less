@@ -7,7 +7,8 @@ body  {
 	padding: 0;
 	width: 100%;
 	height: 100%;
-	background-color: #fff;
+	color: #666;
+	background-color: #222;
 }
 h1 {
 	margin: 0;
@@ -27,15 +28,22 @@ p {
 	border-radius: 10px;
 	font-size: 0;
 }
+#load-indicator {
+	display: block;
+}
+
+@box_width: 150px;
+@box_height: 150px;
+
 #bounds {
-	width: 600px;
-	height: 600px;
+	width: @box_width;
+	height: @box_height;
 	position: absolute;
 	z-index: 1;
 	top: 50%;
 	left: 50%;
-	margin: -300px 0 0 -300px;
-	border: dashed 1px #ccc;
+	margin: ( @box_height / 2 * -1 ) 0 0 ( @box_width / 2 * -1 );
+	border: dashed 1px #555;
 }
 .rule_h {
 	position: absolute;
@@ -43,7 +51,8 @@ p {
 	left: 0;
 	width: 100%;
 	height: 1px;
-	border-top: dotted 1px #cc0000;
+	border-top: dotted 1px #444;
+	z-index: 1;
 }
 .rule_v {
 	position: absolute;	
@@ -51,5 +60,11 @@ p {
 	left: 50%;
 	width: 1px;
 	height: 100%;
-	border-left: dotted 1px #cc0000;
+	border-left: dotted 1px #444;
+	z-index: 1;
+}
+.buttons {
+	position: absolute;
+	z-index: 2;
+	top: ( @box_height + 100px );
 }
