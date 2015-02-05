@@ -2,211 +2,324 @@
 <head>
   <meta charset="utf-8">
   <title>Force</title>
-  <script src="../../common/js/lib/jquery-1.11.0.min.js"></script>
-  <script src="../../common/js/d3/d3.min.js"></script>
+  <script src="../common/js/lib/jquery-1.11.0.min.js"></script>
+  <script src="../common/js/d3/d3.min.js"></script>
 <body>
 <div class="canvas"></div>
 <div class="buttons"></div> 
 <script>
 
-"use strict";
+(function ($) {
 
-var width = 960,
-  height = 500,
-  color = d3.scale.category10();
+  /* * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
 
-var nodes = [
+  "use strict";
+
+  function debug() { 
+    if (typeof window.console === 'object' && console.log) {
+      console.log(arguments[0])
+    }
+  }
+
+  /* * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
+
+  var width = 800,
+      height = 500,
+      color = d3.scale.category10(),
+      nodes = [],
+      links = [],
+      node_source,
+      last_top_node;
+
+  node_source = [
     {
-      'id': 1,
-      'type': 'a'
+      'type': 'b',
+      'nodes': [
+        {
+          'type': 'c'
+        },
+        {
+          'type': 'c'
+        },
+        {
+          'type': 'c'
+        }
+      ]
     },
     {
-      'id': 2,
-      'type': 'b'
+      'type': 'b',
+      'nodes': [
+        {
+          'type': 'c'
+        },
+        {
+          'type': 'c',
+          'nodes': [
+            {
+              'type': 'd'
+            },
+            {
+              'type': 'd',
+              'nodes': [
+                {
+                  'type': 'e'
+                },
+                {
+                  'type': 'e'
+                } 
+              ]
+            },
+            {
+              'type': 'd'
+            },
+            {
+              'type': 'd'
+            },
+            {
+              'type': 'd'
+            }
+          ]
+        },
+        {
+          'type': 'c'
+        }
+      ]
     },
     {
-      'id': 3,
-      'type': 'b'
-    },
-    {
-      'id': 4,
-      'type': 'b'
-    },
-    {
-      'id': 5,
-      'type': 'c'
-    },
-    {
-      'id': 6,
-      'type': 'c'
-    },
-    {
-      'id': 7,
-      'type': 'c'
-    },
-    {
-      'id': 8,
-      'type': 'c'
-    },
-    {
-      'id': 9,
-      'type': 'c'
+      'type': 'b',
+      'nodes': [
+        {
+          'type': 'c'
+        },
+        {
+          'type': 'c',
+          'nodes': [
+            {
+              'type': 'd'
+            },
+            {
+              'type': 'd'
+            },
+            {
+              'type': 'd'
+            }
+          ]
+        },
+        {
+          'type': 'c'
+        }
+      ]
     }
   ],
-  links = [
-    {
-      'source': nodes[ 0 ],
-      'target': nodes[ 1 ],
-      'type': 'solid'
-    },
-    {
-      'source': nodes[ 0 ],
-      'target': nodes[ 2 ],
-      'type': 'solid'
-    },
-    {
-      'source': nodes[ 0 ],
-      'target': nodes[ 3 ],
-      'type': 'solid'
-    },
-    {
-      'source': nodes[ 3 ],
-      'target': nodes[ 4 ],
-      'type': 'solid'
-    },
-    {
-      'source': nodes[ 3 ],
-      'target': nodes[ 5 ],
-      'type': 'solid'
-    },
-    {
-      'source': nodes[ 3 ],
-      'target': nodes[ 6 ],
-      'type': 'solid'
-    },
-    {
-      'source': nodes[ 2 ],
-      'target': nodes[ 7 ],
-      'type': 'solid'
-    },
-    {
-      'source': nodes[ 2 ],
-      'target': nodes[ 8 ],
-      'type': 'solid'
-    },
-    {
-      'source': nodes[ 5 ],
-      'target': nodes[ 8 ],
-      'type': 'dashed'
-    },
-    {
-      'source': nodes[ 4 ],
-      'target': nodes[ 7 ],
-      'type': 'dashed'
-    }
-  ];
+  links = [];
 
-var force = d3.layout.force()
-  .nodes( nodes )
-  .links( links )
-  .charge( -2000 )
-  .linkDistance( 0 )
-  .size( [ width, height ] )
-  .on( 'tick', tick );
+  /* * * * * * * * * * * * * * * * * * * * * * * * * * * * * */ 
 
-var svg = d3.select( '.canvas' )
-      .append( 'svg' )
-      .attr( 'width', width )
-      .attr( 'height', height );
+  function _add_node(node, last_node, is_top, is_last_top) {
 
-var node = svg.selectAll( '.node' ),
-  link = svg.selectAll( '.link' );
+    var current;
 
-function debug() { if ( window.console && console.log ) { console.log( arguments[ 0 ] ) } }
-
-function start() {
-
-  link = link.data( force.links(), function( d ) { 
-    return d.source.id + '-' + d.target.id; 
-  });
-
-  link
-    .enter()
-    .insert( 'line', 'node' )
-    .attr( 'data-type', function( d ) {
-      return d.type;
-    }) 
-    .attr( "class", 'link' );
-
-  link
-    .exit()
-    .remove();
-
-  node = node.data( force.nodes(), function( d ) { 
-    return d.id;
-  });
-
-  node
-    .enter()
-    .append( 'circle' )
-    .attr( 'class', 'node' )
-    .attr( 'data-id', function( d ) { 
-      return d.id;
-    })
-    .attr( 'data-type', function( d ) { 
-      return d.type; 
-    })
-    .attr( 'r', function( d ) {
-      return ( d.type === 'b' ) ? 10 : 4;
-    })
-    .call( force.drag );
-
-  /*node
-    .transition( force.nodes() )
-    .attr( 'cx', function( d ) {
-      return d.x;
-    })
-    .attr( 'cy', function( d ) {
-      return d.y;
-    });*/
-
-  node.exit().remove();
-
-  force.start();
-
-}
-
-function tick() {
-
-  node.attr( 'cx', function( d ) { return d.x; })
-    .attr( 'cy', function( d ) { return d.y; })
-
-  link.attr( 'x1', function( d ) { return d.source.x; })
-    .attr( 'y1', function( d ) { return d.source.y; })
-    .attr( 'x2', function( d ) { return d.target.x; })
-    .attr( 'y2', function( d ) { return d.target.y; });
-
-}
-
-start();
-
-for ( var i = 0; i < 3; i++ ) {
-
-  var $button = $( '<button></button>' );
-
-  $button.addClass( i + 1 );
-  $button.html( i + 1 );
-
-  $button
-    .on( 'click', function() {
-      
-      debug( 'click' );
-
+    this.push({
+      'id': this.length,
+      'type': node.type
     });
 
-  $( 'body' ).append( $button );
+    current = (typeof last_node !== 'string') ? last_node : this[this.length - 1];
 
-}   
+    if (is_top) {
+
+      if (this.length === 1) {
+        last_top_node = this[0];
+      }
+
+      if (this.length > 1) {
+        // Link last top node with this current top node
+        _add_link.call(
+          links,
+          last_top_node,
+          this[this.length - 1],
+          'solid'
+        );
+        last_top_node = this[this.length - 1];
+      }
+
+      if (is_last_top) {
+        // Link first top node with last top node
+        _add_link.call(
+          links,
+          this[0],
+          last_top_node,
+          'solid'
+        );
+      }
+
+    }
+
+    if (is_last_top === false) {
+      _add_link.call(
+        links,
+        current,
+        nodes[this.length - 1],
+        'dashed'
+      );
+    } 
+
+    if ((typeof node.nodes !== 'undefined') && (node.nodes.length > 0)) {
+      current = nodes[this.length - 1];
+      for (var i = 0; i < node.nodes.length; i++) {
+        _add_node.call(
+          this,
+          node.nodes[i],
+          current,
+          false,
+          false
+        );
+      }
+    } 
+
+  }
+
+  /* * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
+
+  function _add_link(source, target, type) {
+
+    var new_link = {
+      'source':  source,
+      'target':  target,
+      'type':    type
+    };
+
+    this.push(new_link);
+
+  }
+
+  /* * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
+
+  // Add nodes
+
+  for (var i = 0; i < node_source.length; i++) {
+
+    var last_index = false;
+
+    if (i === (node_source.length - 1)) {
+      last_index = true;
+    }
+
+    _add_node.call(
+      nodes,
+      node_source[i],
+      'top',
+      true,
+      last_index
+    );
+
+  }
+
+  /* * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
+
+  var force = d3
+        .layout
+        .force()
+        .nodes(nodes)
+        .links(links)
+        .friction(.9)
+        .charge(-700)
+        .linkDistance(20)
+        .size([ width, height ])
+        .on('tick', tick);
+
+  var svg = d3
+        .select('.canvas')
+        .append('svg')
+        .attr('width', width)
+        .attr('height', height);
+
+  var node = svg.selectAll('.node'),
+      link = svg.selectAll('.link');
+
+  /* * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
+
+  function start() {
+
+    link = link.data(force.links(), function (d) {
+      return d.source.id + '-' + d.target.id; 
+    });
+
+    link
+      .enter()
+      .insert('line', 'node')
+      .attr('data-type', function (d) {
+        return d.type;
+      }) 
+      .attr("class", 'link');
+
+    link.exit().remove();
+
+    node = node.data(force.nodes(), function (d) {
+      return d.id;
+    });
+
+    node
+      .enter()
+      .append('circle')
+      .attr('class', 'node')
+      .attr('data-id', function (d) {
+        return d.id;
+      })
+      .attr('data-type', function (d) {
+        return d.type;
+      })
+      .attr('r', function (d) {
+        return (d.type === 'b') ? 8 : 4;
+      })
+      .call(force.drag);
+
+    node.exit().remove();
+    force.start();
+
+  }
+
+  /* * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
+
+  function tick() {
+
+    node.attr('cx', function (d) { return d.x; })
+      .attr('cy', function (d) { return d.y; })
+
+    link.attr('x1', function (d) { return d.source.x; })
+      .attr('y1', function (d) { return d.source.y; })
+      .attr('x2', function (d) { return d.target.x; })
+      .attr('y2', function (d) { return d.target.y; });
+
+  }
+
+  /* * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
+
+  start();
+
+  /* * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
+
+  /*
+  for (var i = 0; i < 3; i++) {
+
+    var $button = $('<button></button>');
+
+    $button.addClass(i + 1);
+    $button.html(i + 1);
+
+    $button
+      .on('click', function () {
+        debug('click');
+      });
+
+    $('body').append($button);
+
+  }
+  */
+
+  /* * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
+
+}) (jQuery);
 
 </script>
 <style>
@@ -217,14 +330,16 @@ svg {
   background-color: #222;
 }
 .link {
-  stroke: #666;
+  stroke: #fff;
   stroke-width: 1.25px;
 }
 .link[data-type="dashed"] {
-  stroke: #cccc00;
+  stroke: #666;
   stroke-width: 1.25px;
+  stroke-dasharray: 1,1;
 }
 .node {
+  cursor: pointer;
   fill: transparent;
   /*
   stroke: #fff;
@@ -238,6 +353,8 @@ svg {
   stroke-width: 1.25px;
 }
 .node[data-type="c"] { fill: #cccccc; }
+.node[data-type="d"] { fill: #000000; }
+.node[data-type="e"] { fill: #3333ff; }
 .buttons {
   position: relative;
   top: 10px;
